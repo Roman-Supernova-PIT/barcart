@@ -1,0 +1,33 @@
+[project]
+name = "barcart"
+description = "Orchestration workflow for Roman WFI supernova candidate discovery and follow-up"
+requires-python = ">=3.11"
+dynamic = ["version"]
+authors = [{ name = "Roman Supernova PIT" }]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+]
+
+dependencies = ["pyyaml>=6.0.3,<7.0.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+docs = ["sphinx"]
+
+[project.scripts]
+barcart = "barcart.cli:main"
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["barcart*"]
+
+[tool.pytest.ini_options]
+testpaths = ["barcart/tests"]
+
+[tool.ruff]
+line-length = 120
