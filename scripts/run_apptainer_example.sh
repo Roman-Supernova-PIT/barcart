@@ -1,6 +1,12 @@
 # Get in the apptainer with
 # bash /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
 
+pip install -e /home/packages/snappl
+pip install -e /home/packages/campari
+pip install -e /home/packages/phrosty
+pip install -e /home/packages/sidecar
+pip install roman-snpit-sfft
+
 base_path=/ricksims/output_images_SCAx2_ZYJHF_40day/
 base_path=/home/packages/photometry_test_data
 
@@ -35,26 +41,28 @@ sidecar_detection_id=$(echo ${candidate_id_ra_dec} | awk '{print $1}')
 sidecar_ra=$(echo ${candidate_id_ra_dec} | awk '{print $2}')
 sidecar_dec=$(echo ${candidate_id_ra_dec} | awk '{print $3}')
 
-SNPIT_CONFIG=packages/barcart/barcart/tests/phrosty_config_smdc_singularity.yaml \
+# SNPIT_CONFIG=packages/barcart/barcart/tests/phrosty_config_test_smdc.yaml
+SNPIT_CONFIG=/home/packages/phrosty/examples/smdc/phrosty_config_smdc.yaml
 SNPIT_SCRATCH=${HOME}/tmp
 python packages/phrosty/phrosty/pipeline.py \
        --oid $sidecar_detection_id \
-       -oc manual \
-       -band J106 \
-       -ra $sidecar_ra \
-       -dec $sidecar_dec \
+       --object-collection manual \
+       --band J106 \
+       --ra $sidecar_ra \
+       --dec $sidecar_dec \
        --image-collection manual_rdm \
        --base-path ${base_path} \
-       --templates-images packages/barcart/barcart/tests/templates_1.csv \
+       --template-images packages/barcart/barcart/tests/templates_1.csv \
        --science-images packages/barcart/barcart/tests/science_2.csv \
-       -p 1 -w 1 \
+       --nprocs 1 --nwrite 1 \
        --backend numpy \
        -v
 
 
 # salloc --nodes 1 --qos interactive --time 04:00:00 -p mem-med
 # git checkout SMDC_updates
-export SNPIT_CONFIG=packages/barcart/barcart/tests/campari_config_test.yaml
+# export SNPIT_CONFIG=packages/barcart/barcart/tests/campari_config_test.yaml
+export SNPIT_CONFIG=/home/packages/campari/examples/SMDC/campari_config_test.yaml
 
 mkdir -p /dev_storage/campari_debug_dir/
 python packages/campari/campari/RomanASP.py \
