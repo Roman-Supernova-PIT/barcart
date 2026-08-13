@@ -1,14 +1,14 @@
 # Get in the apptainer with
 # bash /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
 
+pip install roman-snpit-sfft
 pip install -e /home/packages/snappl
 pip install -e /home/packages/campari
 pip install -e /home/packages/phrosty
-pip install -e /home/packages/sidecar
-pip install roman-snpit-sfft
+pip install -e /home/packages/sidecar --nodeps
 
 base_path=/ricksims/output_images_SCAx2_ZYJHF_40day/
-base_path=/home/packages/photometry_test_data
+# base_path=/home/packages/photometry_test_data
 
 template_path=${base_path}/SNPIT_VISIT602000033_WFI01_F106_L2.asdf
 science_path=${base_path}/SNPIT_VISIT607000033_WFI01_F106_L2.asdf
