@@ -1,8 +1,12 @@
 # Get in the apptainer with the following command to be run from
 # your RUNDIR, which is defined to be the directory that contains 'packages/'
-source /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
-
-pip install roman-snpit-sfft
+#
+# source /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
+#
+# Then from that shell you can run this script with
+#
+# bash barcart/scripts/run_apptainer_example.sh
+pip install sfft-romansnpit
 pip install -e /home/packages/snappl
 pip install -e /home/packages/campari
 pip install -e /home/packages/phrosty --no-deps
