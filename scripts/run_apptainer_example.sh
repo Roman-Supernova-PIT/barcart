@@ -1,17 +1,18 @@
-# Get in the apptainer with
-# bash /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
+# Get in the apptainer with the following command to be run from
+# your RUNDIR, which is defined to be the directory that contains 'packages/'
+source /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
 
 pip install roman-snpit-sfft
 pip install -e /home/packages/snappl
 pip install -e /home/packages/campari
-pip install -e /home/packages/phrosty
-pip install -e /home/packages/sidecar --nodeps
+pip install -e /home/packages/phrosty --no-deps
+pip install -e /home/packages/sidecar --no-deps
 
-base_path=/ricksims/output_images_SCAx2_ZYJHF_40day/
+base_path=/ricksims/
 # base_path=/home/packages/photometry_test_data
 
-template_path=${base_path}/SNPIT_VISIT602000033_WFI01_F106_L2.asdf
-science_path=${base_path}/SNPIT_VISIT607000033_WFI01_F106_L2.asdf
+template_path=${base_path}/output_images_SCAx2_ZYJHF_40day/SNPIT_VISIT602000033_WFI01_F106_L2.asdf
+science_path=${base_path}/output_images_SCAx2_ZYJHF_40day/SNPIT_VISIT607000033_WFI01_F106_L2.asdf
 python \
     packages/sidecar/sidecar/pipeline.py \
     --image-collection manual_rdm \
@@ -47,7 +48,7 @@ SNPIT_SCRATCH=${HOME}/tmp
 python packages/phrosty/phrosty/pipeline.py \
        --oid $sidecar_detection_id \
        --object-collection manual \
-       --band J106 \
+       --band J129 \
        --ra $sidecar_ra \
        --dec $sidecar_dec \
        --image-collection manual_rdm \
@@ -66,7 +67,7 @@ export SNPIT_CONFIG=/home/packages/campari/examples/SMDC/campari_config_test.yam
 
 mkdir -p /dev_storage/campari_debug_dir/
 python packages/campari/campari/RomanASP.py \
-    --filter F106 \
+    --filter F129 \
     --ra $sidecar_ra \
     --dec $sidecar_dec \
     --diaobject-collection manual \

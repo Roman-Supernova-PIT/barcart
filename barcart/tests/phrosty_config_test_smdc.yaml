@@ -1,5 +1,5 @@
 :replaceable_preloads:
-  - ${SNPIT_DIR}/packages/environment/smdc_interactive_config.yaml
+  - /home/packages/environment/smdc_interactive_config.yaml
 
 photometry:
   phrosty:
