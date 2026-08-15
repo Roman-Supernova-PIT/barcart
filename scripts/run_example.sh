@@ -102,7 +102,7 @@ require_file "$score_detection_file" "sidecar detection file"
 # order guarantee for the detected sources. Parse the data through package code
 # instead of an inline Python block so the logic is reusable and easier to test.
 read -r sidecar_detection_id sidecar_ra sidecar_dec < <(
-  python -c 'from barcart.detection_parser import parse_sidecar_detection; import sys; result = parse_sidecar_detection(sys.argv[1]); print(" ".join(result))' "$score_detection_file"
+  python -m barcart.detection_parser "$score_detection_file"
 )
 
 require_arg "$sidecar_detection_id" "sidecar_detection_id"
