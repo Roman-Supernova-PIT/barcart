@@ -5,7 +5,7 @@ from pathlib import Path
 from astropy.table import Table
 
 
-def parse_sidecar_detection(path: str | Path, row_idx=-1) -> tuple[str, str, str]:
+def parse_sidecar_detection(path: str | Path, row_idx=-1) -> tuple[int, float, float]:
     """Return the detection id, RA, and DEC from the relevant sidecar row.
 
     The score-detection catalog is stored as an ECSV table with named columns,
@@ -26,7 +26,7 @@ def parse_sidecar_detection(path: str | Path, row_idx=-1) -> tuple[str, str, str
         raise ValueError(f"Missing required columns in {score_file!s}: {missing}")
 
     row = table[row_idx]
-    detection_id = str(row["id"])
-    ra = str(row["ra"])
-    dec = str(row["dec"])
+    detection_id = row["id"]
+    ra = row["ra"]
+    dec = row["dec"]
     return detection_id, ra, dec
