@@ -99,31 +99,10 @@ score_detection_file="${SIDECAR_OUT_DIR}/score_detection_${SUBTRACTION_NAME}.ecs
 require_file "$score_detection_file" "sidecar detection file"
 
 # In MWV's testing on 2026-08-12, it was the third detection, but there is no
-# order guarantee for the detected sources. Skip comment lines and parse a row
-# that contains the ID, RA, and DEC as the first, seventh, and eighth fields.
+# order guarantee for the detected sources. Parse the data through package code
+# instead of an inline Python block so the logic is reusable and easier to test.
 read -r sidecar_detection_id sidecar_ra sidecar_dec < <(
-  python - "$score_detection_file" <<'PY'
-import sys
-
-path = sys.argv[1]
-rows = []
-with open(path, 'r', encoding='utf-8') as fh:
-    for line in fh:
-        if line.startswith('#') or not line.strip():
-            continue
-        rows.append(line.strip())
-
-if len(rows) < 4:
-    raise SystemExit(f"Not enough data rows in {path!r}; found {len(rows)}")
-
-parts = rows[3].split()
-if len(parts) < 8:
-    raise SystemExit(
-        f"Expected at least 8 whitespace-separated columns in {path!r}, got {len(parts)}: {rows[3]!r}"
-    )
-
-print(f"{parts[0]} {parts[6]} {parts[7]}")
-PY
+  python -c 'from barcart.detection_parser import parse_sidecar_detection; import sys; result = parse_sidecar_detection(sys.argv[1]); print(" ".join(result))' "$score_detection_file"
 )
 
 require_arg "$sidecar_detection_id" "sidecar_detection_id"
