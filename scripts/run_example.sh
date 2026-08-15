@@ -56,7 +56,6 @@ require_file "$SNPIT_CONFIG" "SNPIT config"
 
 # These are package requirements that should eventually live in package metadata.
 log "Installing required Python dependencies"
-python -m pip install --quiet crds sfft-romansnpit
 
 # 2026-08-14: Hopefully not needed once snappl settles down.
 python -m pip install --quiet -e "${RUNDIR}/packages/snappl"

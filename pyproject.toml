@@ -10,7 +10,11 @@ classifiers = [
     "Programming Language :: Python",
 ]
 
-dependencies = ["roman_snpit_snappl>=0.41"]
+dependencies = [
+    "roman_snpit_snappl>=0.41",
+    "crds>=13.2.7",
+    "sfft-romansnpit>=1.6.4.dev16",
+]
 
 [project.optional-dependencies]
 test = ["pytest>=9.1"]
