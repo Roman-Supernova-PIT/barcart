@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Get in the apptainer with the following command to be run from
-# your RUNDIR, which is defined to be the directory that contains 'packages/'
-#
-# source /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
-#
-# Then from that shell you can run this script with
-#
-# bash barcart/scripts/run_apptainer_example.sh
-#
-# salloc --nodes 1 --qos interactive --time 04:00:00 -p mem-med
+# This script is meant to be run by invoking either 'run_native_example.sh' or 'run_apptainer_example.sh'
 
 usage() {
   echo "Usage: $0 RUNDIR BASE_IMAGE_PATH" >&2
