@@ -2,31 +2,31 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from astropy.table import Table
 
-def parse_sidecar_detection(path: str | Path) -> tuple[str, str, str]:
+
+def parse_sidecar_detection(path: str | Path, row_idx=-1) -> tuple[str, str, str]:
     """Return the detection id, RA, and DEC from the relevant sidecar row.
 
-    The ECSV file includes comment lines and a header, then a sequence of rows.
-    We skip comment/blank lines and read the first non-comment row that contains
-    the ID, RA, and DEC fields in the expected column positions.
+    The score-detection catalog is stored as an ECSV table with named columns,
+    so we read it via Astropy and retrieve the values by column names instead of
+    assuming a fixed column ordering.
+
+    path: str | Path
+        The path to the score-detection catalog ECSV file.
+    row_idx: int
+        The index of the row to retrieve. Defaults to -1, which is the last row.
     """
     score_file = Path(path)
-    rows: list[str] = []
+    table = Table.read(score_file, format="ascii.ecsv")
 
-    with score_file.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            if line.startswith("#") or not line.strip():
-                continue
-            rows.append(line.strip())
+    required_columns = {"id", "ra", "dec"}
+    missing = sorted(required_columns - set(table.colnames))
+    if missing:
+        raise ValueError(f"Missing required columns in {score_file!s}: {missing}")
 
-    if len(rows) < 4:
-        raise ValueError(f"Not enough data rows in {score_file!s}; found {len(rows)}")
-
-    parts = rows[3].split()
-    if len(parts) < 8:
-        raise ValueError(
-            f"Expected at least 8 whitespace-separated columns in {score_file!s}, got {len(parts)}: {rows[3]!r}"
-        )
-
-    detection_id, ra, dec = parts[0], parts[6], parts[7]
+    row = table[row_idx]
+    detection_id = str(row["id"])
+    ra = str(row["ra"])
+    dec = str(row["dec"])
     return detection_id, ra, dec
