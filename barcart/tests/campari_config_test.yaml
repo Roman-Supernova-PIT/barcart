@@ -39,7 +39,7 @@ photometry:
     debug_dir: debug_dir
     save_debug: true
     test_num: 1
-    test_data: /home/packages/campari_test_data
+    test_data: ${RUNDIR}/packages/campari_test_data
     campari_simulations:
     avoid_non_linearity: false
     background_level: 0
