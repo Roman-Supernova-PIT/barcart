@@ -6,9 +6,15 @@
 # Then from that shell you can run this script with
 #
 # bash barcart/scripts/run_apptainer_example.sh
+#
+# salloc --nodes 1 --qos interactive --time 04:00:00 -p mem-med
 
 RUNDIR=$1
 BASE_IMAGE_PATH=$2
+
+export RUNDIR
+
+SNPIT_CONFIG=${RUNDIR}/packages/barcart/scripts/barcart_config_test.yaml
 
 # These two should be requirements on snappl
 pip install crds
@@ -51,7 +57,6 @@ sidecar_detection_id=$(echo ${candidate_id_ra_dec} | awk '{print $1}')
 sidecar_ra=$(echo ${candidate_id_ra_dec} | awk '{print $2}')
 sidecar_dec=$(echo ${candidate_id_ra_dec} | awk '{print $3}')
 
-SNPIT_CONFIG=${RUNDIR}/packages/barcart/barcart/tests/phrosty_config_test_smdc.yaml
 SNPIT_SCRATCH=${HOME}/tmp
 python packages/phrosty/phrosty/pipeline.py \
        --oid $sidecar_detection_id \
@@ -67,11 +72,6 @@ python packages/phrosty/phrosty/pipeline.py \
        --nwrite 1 \
        --backend numpy \
        -v
-
-
-# salloc --nodes 1 --qos interactive --time 04:00:00 -p mem-med
-# git checkout SMDC_updates
-export SNPIT_CONFIG=packages/barcart/barcart/tests/campari_config_test.yaml
 
 mkdir -p /dev_storage/campari_debug_dir/
 python packages/campari/campari/RomanASP.py \
