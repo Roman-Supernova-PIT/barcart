@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
 # Get in the apptainer with the following command to be run from
 # your RUNDIR, which is defined to be the directory that contains 'packages/'
 #
@@ -9,85 +12,158 @@
 #
 # salloc --nodes 1 --qos interactive --time 04:00:00 -p mem-med
 
-RUNDIR=$1
-BASE_IMAGE_PATH=$2
+usage() {
+  echo "Usage: $0 RUNDIR BASE_IMAGE_PATH" >&2
+  exit 1
+}
 
-export RUNDIR
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
 
-SNPIT_CONFIG=${RUNDIR}/packages/barcart/scripts/barcart_config_test.yaml
+require_file() {
+  local path="$1"
+  local label="$2"
+  if [[ ! -e "$path" ]]; then
+    echo "ERROR: ${label} not found: ${path}" >&2
+    exit 1
+  fi
+}
 
-# These two should be requirements on snappl
-pip install crds
-pip install sfft-romansnpit
+require_arg() {
+  local value="$1"
+  local name="$2"
+  if [[ -z "$value" ]]; then
+    echo "ERROR: ${name} is empty" >&2
+    exit 1
+  fi
+}
 
-# 2026-08-14  Hopefully not needed once snappl settles down
-pip install -e ${RUNDIR}/packages/snappl
+[[ $# -eq 2 ]] || usage
 
-pip install -e ${RUNDIR}/packages/campari
-pip install -e ${RUNDIR}/packages/phrosty --no-deps
-pip install -e ${RUNDIR}/packages/sidecar --no-deps
+RUNDIR="$1"
+BASE_IMAGE_PATH="$2"
 
-template_path=${BASE_IMAGE_PATH}/output_images_SCAx2_ZYJHF_40day/SNPIT_VISIT602000033_WFI01_F106_L2.asdf
-science_path=${BASE_IMAGE_PATH}/output_images_SCAx2_ZYJHF_40day/SNPIT_VISIT607000033_WFI01_F106_L2.asdf
+require_arg "$RUNDIR" "RUNDIR"
+require_arg "$BASE_IMAGE_PATH" "BASE_IMAGE_PATH"
+
+if [[ ! -d "${RUNDIR}/packages" ]]; then
+  echo "ERROR: RUNDIR must contain a packages/ directory: ${RUNDIR}" >&2
+  exit 1
+fi
+
+if [[ ! -d "$BASE_IMAGE_PATH" ]]; then
+  echo "ERROR: BASE_IMAGE_PATH does not exist: ${BASE_IMAGE_PATH}" >&2
+  exit 1
+fi
+
+export RUNDIR BASE_IMAGE_PATH
+cd "$RUNDIR"
+
+SNPIT_CONFIG="${RUNDIR}/packages/barcart/scripts/barcart_config_test.yaml"
+require_file "$SNPIT_CONFIG" "SNPIT config"
+
+# These are package requirements that should eventually live in package metadata.
+log "Installing required Python dependencies"
+python -m pip install --quiet crds sfft-romansnpit
+
+# 2026-08-14: Hopefully not needed once snappl settles down.
+python -m pip install --quiet -e "${RUNDIR}/packages/snappl"
+python -m pip install --quiet -e "${RUNDIR}/packages/campari"
+python -m pip install --quiet -e "${RUNDIR}/packages/phrosty" --no-deps
+python -m pip install --quiet -e "${RUNDIR}/packages/sidecar" --no-deps
+
+template_path="${BASE_IMAGE_PATH}/output_images_SCAx2_ZYJHF_40day/SNPIT_VISIT602000033_WFI01_F106_L2.asdf"
+science_path="${BASE_IMAGE_PATH}/output_images_SCAx2_ZYJHF_40day/SNPIT_VISIT607000033_WFI01_F106_L2.asdf"
+require_file "$template_path" "template image"
+require_file "$science_path" "science image"
+
+log "Running sidecar subtraction"
 python \
-    packages/sidecar/sidecar/pipeline.py \
-    --image-collection manual_rdm \
-    --base-path ${BASE_IMAGE_PATH} \
-    --template-path ${template_path} \
-    --science-path ${science_path} \
-    --no-reject-known-stars \
-    --temp-dir ${HOME}/tmp \
-    --output-dir ./ \
-    --backend4subtract numpy
+  packages/sidecar/sidecar/pipeline.py \
+  --image-collection manual_rdm \
+  --base-path "$BASE_IMAGE_PATH" \
+  --template-path "$template_path" \
+  --science-path "$science_path" \
+  --no-reject-known-stars \
+  --temp-dir "${HOME}/tmp" \
+  --output-dir ./ \
+  --backend4subtract numpy
 
-# The above will create the following output directory
-# We should consider changing the way sidecar works so that the output directory 
-# can be fully specified in the sidecar call,
-# but for now we will just hardcode it here
+# The above creates the following output directory.
+# We should consider changing the way sidecar works so that the output directory
+# can be fully specified in the sidecar call, but for now we hardcode it here.
+SUBTRACTION_NAME="F106_607000033_1_-_F106_602000033_1"
+SIDECAR_OUT_DIR="${SUBTRACTION_NAME}"
+score_detection_file="${SIDECAR_OUT_DIR}/score_detection_${SUBTRACTION_NAME}.ecsv"
+require_file "$score_detection_file" "sidecar detection file"
 
-SUBTRACTION_NAME=F106_607000033_1_-_F106_602000033_1
-SIDECAR_OUT_DIR=${SUBTRACTION_NAME}
-score_detection_file=${SIDECAR_OUT_DIR}/score_detection_${SUBTRACTION_NAME}.ecsv
+# In MWV's testing on 2026-08-12, it was the third detection, but there is no
+# order guarantee for the detected sources. Skip comment lines and parse a row
+# that contains the ID, RA, and DEC as the first, seventh, and eighth fields.
+read -r sidecar_detection_id sidecar_ra sidecar_dec < <(
+  python - "$score_detection_file" <<'PY'
+import sys
 
-# In MWV's testing on 2026-08-12, it was the third detection, but there's no order guarantee for the detected sources
-# We need to skip over the comment lines in the ecsv file, which start with a # character
-# and the header line with the column names
-candidate_id_ra_dec=$(grep -v '^#' ${score_detection_file} | head -n 4 | tail -n 1 | awk '{print $1, $7, $8}')
-sidecar_detection_id=$(echo ${candidate_id_ra_dec} | awk '{print $1}')
-sidecar_ra=$(echo ${candidate_id_ra_dec} | awk '{print $2}')
-sidecar_dec=$(echo ${candidate_id_ra_dec} | awk '{print $3}')
+path = sys.argv[1]
+rows = []
+with open(path, 'r', encoding='utf-8') as fh:
+    for line in fh:
+        if line.startswith('#') or not line.strip():
+            continue
+        rows.append(line.strip())
 
-SNPIT_SCRATCH=${HOME}/tmp
+if len(rows) < 4:
+    raise SystemExit(f"Not enough data rows in {path!r}; found {len(rows)}")
+
+parts = rows[3].split()
+if len(parts) < 8:
+    raise SystemExit(
+        f"Expected at least 8 whitespace-separated columns in {path!r}, got {len(parts)}: {rows[3]!r}"
+    )
+
+print(f"{parts[0]} {parts[6]} {parts[7]}")
+PY
+)
+
+require_arg "$sidecar_detection_id" "sidecar_detection_id"
+require_arg "$sidecar_ra" "sidecar_ra"
+require_arg "$sidecar_dec" "sidecar_dec"
+
+log "Running phrosty for oid=${sidecar_detection_id}"
+SNPIT_SCRATCH="${HOME}/tmp"
+export SNPIT_SCRATCH
 python packages/phrosty/phrosty/pipeline.py \
-       --oid $sidecar_detection_id \
-       --object-collection manual \
-       --band J129 \
-       --ra $sidecar_ra \
-       --dec $sidecar_dec \
-       --image-collection manual_rdm \
-       --base-path ${BASE_IMAGE_PATH} \
-       --template-images ${RUNDIR}/packages/barcart/barcart/tests/templates_1.csv \
-       --science-images ${RUNDIR}/packages/barcart/barcart/tests/science_2.csv \
-       --nprocs 1 \
-       --nwrite 1 \
-       --backend numpy \
-       -v
+  --oid "$sidecar_detection_id" \
+  --object-collection manual \
+  --band J129 \
+  --ra "$sidecar_ra" \
+  --dec "$sidecar_dec" \
+  --image-collection manual_rdm \
+  --base-path "$BASE_IMAGE_PATH" \
+  --template-images "${RUNDIR}/packages/barcart/barcart/tests/templates_1.csv" \
+  --science-images "${RUNDIR}/packages/barcart/barcart/tests/science_2.csv" \
+  --nprocs 1 \
+  --nwrite 1 \
+  --backend numpy \
+  -v
 
 mkdir -p /dev_storage/campari_debug_dir/
+log "Running campari"
 python packages/campari/campari/RomanASP.py \
-    --filter F129 \
-    --ra $sidecar_ra \
-    --dec $sidecar_dec \
-    --diaobject-collection manual \
-    --diaobject-name coolsne \
-    --image-collection snpitdb \
-    --image-provenance-tag ricksim202608 \
-    --image-process load_ricksim \
-    --transient_start 60400 \
-    --nprocs  1  \
-    --photometry-campari-psf-transient_class gaussian \
-    --photometry-campari-psf-galaxy_class gaussian \
-    --max_transient_images 1 \
-    --max_no_transient_images 1 \
-    --photometry-campari-grid_options-type regular \
-    --no-save-to-db
+  --filter F129 \
+  --ra "$sidecar_ra" \
+  --dec "$sidecar_dec" \
+  --diaobject-collection manual \
+  --diaobject-name coolsne \
+  --image-collection snpitdb \
+  --image-provenance-tag ricksim202608 \
+  --image-process load_ricksim \
+  --transient_start 60400 \
+  --nprocs 1 \
+  --photometry-campari-psf-transient_class gaussian \
+  --photometry-campari-psf-galaxy_class gaussian \
+  --max_transient_images 1 \
+  --max_no_transient_images 1 \
+  --photometry-campari-grid_options-type regular \
+  --no-save-to-db
