@@ -42,12 +42,12 @@ git checkout SMDC_updates
 4. Load container environment:
 
 ```
+cd ${HOME}/snpit
 bash /data/snpit/env/environment_checkout_for_apptainer/singrun_smdc_ricksim.sh
 ```
 
 5. Run script in container environment to perform subtraction and photometry of a selected candidate
 
 ```
-cd ${HOME}/snpit
 barcart/scripts/run_apptainer_example.sh
 ```
